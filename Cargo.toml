@@ -1,0 +1,15 @@
+[package]
+name = "monsum"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+anyhow = "1.0.65"
+chrono = "0.4.22"
+clap = { version = "3.2.22", features = ["derive"] }
+
+[lib]
+name = "lib"
+path = "src/lib/mod.rs"
