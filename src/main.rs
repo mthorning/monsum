@@ -1,5 +1,5 @@
 use anyhow::{Context,Result};
-use lib::Cli;
+use lib::{Cli, Month};
 
 fn main() -> Result<()> {
     let args: Vec<String> = std::env::args().collect();
@@ -13,7 +13,9 @@ fn main() -> Result<()> {
 
 
     path.push(format!("{} {}.md", month, year));
-    println!("{:?}", path);
+
+    let month = Month::new(&path).context("Error creating Month")?;
+    month.print_tasks();
 
     Ok(())
 }

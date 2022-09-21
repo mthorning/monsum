@@ -1,8 +1,3 @@
-pub struct Task {
-    pub value: String,
-    pub completed: bool,
-}
-
 pub enum Period {
     Morning,
     Afternoon,
