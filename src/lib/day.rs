@@ -13,7 +13,6 @@ pub struct Habit {
 pub struct Day {
     pub date: String,
     pub events: Vec<String>,
-    pub tasks: Vec<Task>,
     pub habits: Vec<Habit>,
     pub notes: Vec<String>,
     pub gratitudes: Vec<String>,

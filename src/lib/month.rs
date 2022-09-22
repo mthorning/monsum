@@ -1,7 +1,7 @@
 use crate::day::Day;
 use anyhow::{Context, Result};
 use lazy_static::lazy_static;
-use regex::Regex;
+use regex::{Regex, RegexBuilder};
 use std::fs::File;
 use std::io::{prelude::*, BufReader};
 use std::path::PathBuf;
@@ -47,9 +47,11 @@ impl Month {
                     _ => (),
                 },
                 LineMode::Task => match line_str {
-                    line_str if line_str.starts_with("- [") => month.tasks.push(
-                        get_task_from_line(line_str).context("Error getting task from line")?,
-                    ),
+                    line_str if line_str.starts_with("- [") => {
+                        if let Some(task) = get_task_from_line(line_str) {
+                            month.tasks.push(task);
+                        }
+                    }
                     "## Days" => line_mode = LineMode::Day,
                     "---" => line_mode = LineMode::None,
                     _ => (),
@@ -76,19 +78,56 @@ impl Month {
     }
 }
 
-fn get_task_from_line(line_str: &str) -> Result<Task> {
+fn get_task_from_line(line_str: &str) -> Option<Task> {
     lazy_static! {
-        static ref RE: Regex = Regex::new(r"^- \[(?P<checked>(x|\s))\]\s+(?P<value>.*)")
-            .context("Error constructing task regex")?;
+        static ref RE: Regex = RegexBuilder::new(r"^- \[(?P<checked>(x|\s))\](?P<value>.*)")
+            .case_insensitive(true)
+            .build()
+            .expect("Error creating task regex");
     }
 
-    //TODO write some tests for this regex and work out wtf is going on!
-    if let Some(captures) = RE.captures(line_str) {
-        let value = captures.name("checked").unwrap().as_str().to_owned();
+    RE.captures(line_str).map(|captures| {
+        let value = captures.name("value").unwrap().as_str().trim().to_owned();
         let checked = captures.name("checked").unwrap().as_str();
-        Ok(Task {
+        Task {
             value,
-            completed: checked == "x",
-        })
+            completed: checked == "x" || checked == "X",
+        }
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn gets_a_task_from_a_line() {
+        let expected = "This is my task";
+        assert!(matches!(
+            get_task_from_line(format!("- [ ] {expected}").as_str()),
+            Some(task) if task.value == expected && !task.completed
+        ));
+    }
+
+    #[test]
+    fn gets_a_completed_task_from_a_line() {
+        let expected = "This is my task";
+        assert!(matches!(
+            get_task_from_line(format!("- [x] {expected}").as_str()),
+            Some(task) if task.completed
+        ));
+    }
+    #[test]
+    fn is_case_insensitive() {
+        let expected = "This is my task";
+        assert!(matches!(
+            get_task_from_line(format!("- [X] {expected}").as_str()),
+            Some(task) if task.completed
+        ));
+    }
+
+    #[test]
+    fn gets_a_none_if_no_task() {
+        assert!(matches!(get_task_from_line(format!("- [x").as_str()), None));
     }
 }
