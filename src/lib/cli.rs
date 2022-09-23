@@ -79,7 +79,7 @@ impl Cli {
         I: IntoIterator<Item = T>,
         T: Into<std::ffi::OsString> + Clone,
     {
-        let mut command = Command::new("monsum")
+        let mut command = Command::new("summon")
             .version(VERSION)
             .author("Matt Thorning")
             .about("Summarises my monthly notes");
@@ -147,47 +147,47 @@ mod tests {
 
     #[test]
     fn cli_year_option_positive() {
-        let mut command = Command::new("monsum");
+        let mut command = Command::new("summon");
         command = add_year_option(command);
 
         let matches = command
             .clone()
-            .get_matches_from(vec!["monsum", "--year", "2022"]);
+            .get_matches_from(vec!["summon", "--year", "2022"]);
         let year_option: u16 = *matches.get_one("year").unwrap();
         assert_eq!(year_option, 2022);
 
-        let matches = command.get_matches_from(vec!["monsum", "-y", "2029"]);
+        let matches = command.get_matches_from(vec!["summon", "-y", "2029"]);
         let year_option: u16 = *matches.get_one("year").unwrap();
         assert_eq!(year_option, 2029);
     }
 
     #[test]
     fn cli_year_option_negative() {
-        let mut command = Command::new("monsum");
+        let mut command = Command::new("summon");
         command = add_year_option(command);
 
         let result = command
             .clone()
-            .try_get_matches_from(vec!["monsum", "--year", "2021"]);
+            .try_get_matches_from(vec!["summon", "--year", "2021"]);
         assert!(matches!(result, Err(_)));
 
-        let result = command.try_get_matches_from(vec!["monsum", "--year", "2030"]);
+        let result = command.try_get_matches_from(vec!["summon", "--year", "2030"]);
         assert!(matches!(result, Err(_)));
     }
 
     #[test]
     fn cli_month_option_positive() {
-        let mut command = Command::new("monsum");
+        let mut command = Command::new("summon");
         command = add_month_option(command);
 
         let matches = command
             .clone()
-            .get_matches_from(vec!["monsum", "--month", "august"]);
+            .get_matches_from(vec!["summon", "--month", "august"]);
         let month_option = matches.get_one::<Month>("month").unwrap().to_owned();
         assert!(matches!(month_option, Month::August));
         assert_eq!(month_option.to_string(), "August");
 
-        let matches = command.get_matches_from(vec!["monsum", "--month", "october"]);
+        let matches = command.get_matches_from(vec!["summon", "--month", "october"]);
         let month_option = matches.get_one::<Month>("month").unwrap().to_owned();
         assert!(matches!(month_option, Month::October));
         assert_eq!(month_option.to_string(), "October");
@@ -195,57 +195,57 @@ mod tests {
 
     #[test]
     fn cli_month_option_case_insensitive() {
-        let mut command = Command::new("monsum");
+        let mut command = Command::new("summon");
         command = add_month_option(command);
 
-        let matches = command.get_matches_from(vec!["monsum", "--month", "fEBRUARY"]);
+        let matches = command.get_matches_from(vec!["summon", "--month", "fEBRUARY"]);
         let month_option = matches.get_one::<Month>("month").unwrap().to_owned();
         assert_eq!(month_option.to_string(), String::from("February"));
     }
 
     #[test]
     fn cli_month_option_negative() {
-        let mut command = Command::new("monsum");
+        let mut command = Command::new("summon");
         command = add_month_option(command);
 
         let result = command
             .clone()
-            .try_get_matches_from(vec!["monsum", "--month", "Sep"]);
+            .try_get_matches_from(vec!["summon", "--month", "Sep"]);
         assert!(matches!(result, Err(_)));
 
-        let result = command.try_get_matches_from(vec!["monsum", "--month", "Orange"]);
+        let result = command.try_get_matches_from(vec!["summon", "--month", "Orange"]);
         assert!(matches!(result, Err(_)));
     }
 
     #[test]
     fn cli_path_option_default() {
-        let mut command = Command::new("monsum");
+        let mut command = Command::new("summon");
         command = add_path_option(command);
 
-        let matches = command.clone().get_matches_from(vec!["monsum"]);
+        let matches = command.clone().get_matches_from(vec!["summon"]);
         let path_option = matches.get_one::<PathBuf>("path").unwrap().to_owned();
         assert_eq!(path_option.into_os_string(), ".");
     }
 
     #[test]
     fn cli_path_option_positive() {
-        let mut command = Command::new("monsum");
+        let mut command = Command::new("summon");
         command = add_path_option(command);
 
         let matches = command
             .clone()
-            .get_matches_from(vec!["monsum", "--path", "~/code/monsum"]);
+            .get_matches_from(vec!["summon", "--path", "~/code/summon"]);
         let path_option = matches.get_one::<PathBuf>("path").unwrap().to_owned();
-        assert_eq!(path_option.into_os_string(), "~/code/monsum");
+        assert_eq!(path_option.into_os_string(), "~/code/summon");
 
-        let matches = command.get_matches_from(vec!["monsum", "--path", "/etc/"]);
+        let matches = command.get_matches_from(vec!["summon", "--path", "/etc/"]);
         let path_option = matches.get_one::<PathBuf>("path").unwrap().to_owned();
         assert_eq!(path_option.into_os_string(), "/etc/");
     }
 
     #[test]
     fn cli_matches() {
-        let cli = Cli::new(vec!["monsum", "--year", "2023", "-m", "february"]);
+        let cli = Cli::new(vec!["summon", "--year", "2023", "-m", "february"]);
 
         let year = cli.matches.get_one::<u16>("year");
         assert!(matches!(year, Some(2023)));
