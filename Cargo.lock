@@ -292,19 +292,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "monsum"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "chrono",
- "clap",
- "enum-iterator",
- "inquire",
- "lazy_static",
- "regex",
-]
-
-[[package]]
 name = "newline-converter"
 version = "0.2.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -479,6 +466,19 @@ name = "strsim"
 version = "0.10.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "73473c0e59e6d5812c5dfe2a064a6444949f089e20eec9a2e5506596494e4623"
+
+[[package]]
+name = "summon"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "chrono",
+ "clap",
+ "enum-iterator",
+ "inquire",
+ "lazy_static",
+ "regex",
+]
 
 [[package]]
 name = "syn"
