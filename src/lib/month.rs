@@ -7,6 +7,7 @@ use regex::{Regex, RegexBuilder};
 use std::fs::File;
 use std::io::{prelude::*, BufReader};
 use std::path::PathBuf;
+use std::mem;
 
 #[derive(Debug)]
 struct Task {
@@ -22,7 +23,7 @@ pub struct Month {
 
 enum LineMode {
     Normal,
-    Day(Option<PathBuf>),
+    Day(Option<Day>),
 }
 
 impl Month {
@@ -42,38 +43,57 @@ impl Month {
             let len = reader.read_line(&mut line)?;
             let line_str = line.as_str().trim();
 
-            match &line_mode {
-                LineMode::Normal => match line_str {
-                    line_str if line_str.starts_with("- [") => {
+            match &mut line_mode {
+                LineMode::Normal => {
+                    // Found a task
+                    if line_str.starts_with("- [") {
                         if let Some(task) = get_task_from_line(line_str) {
                             month.tasks.push(task);
                         }
+
+                    // Reached list of days
+                    } else if line_str == "## Days" {
+                        let _ = mem::replace(&mut line_mode, LineMode::Day(None));
                     }
-                    "## Days" => line_mode = LineMode::Day(None),
-                    _ => (),
-                },
-                LineMode::Day(day) => match line_str {
-                    line_str if line_str.starts_with("## ") => line_mode = LineMode::Normal,
-                    line_str if line_str.starts_with("### [[") => {
-                        if let Some(path) = get_path_from_line(line_str) {
-                            line_mode = LineMode::Day(Some(path));
-                        }
-                    }
-                    _ => match day {
-                        Some(path) if line_str.starts_with("- [") => {
-                            if let Some(mut task) = get_task_from_line(line_str) {
-                                if let Some(ymd) = get_date_from_path(path) {
-                                    let (y, m, d) = ymd;
-                                    task.date = Some(NaiveDate::from_ymd(y, m, d));
-                                    month.tasks.push(task);
-                                }
+                }
+                LineMode::Day(possible_day) => match possible_day {
+                    None => {
+                        // Leaving day mode (won't happen in current template)
+                        if line_str.starts_with("## ") {
+                            let _ = mem::replace(&mut line_mode, LineMode::Normal);
+
+                        // Found a date
+                        } else if line_str.starts_with("### [[") {
+                            if let Some(path) = get_path_from_line(line_str) {
+                                let day = Day::new(&path)?;
+                                let _ = mem::replace(&mut line_mode, LineMode::Day(Some(day)));
                             }
                         }
-                        Some(path) if line_str.starts_with("- ") => {
-                            todo!();
+                    }
+                    Some(day) => {
+                        // Leaving day mode (won't happen in current template)
+                        if line_str.starts_with("## ") {
+                            let _ = mem::replace(&mut line_mode, LineMode::Normal);
+
+                        // Reached a new different date
+                        } else if line_str.starts_with("### [[") {
+                            if let Some(path) = get_path_from_line(line_str) {
+                                let new_day = Day::new(&path)?;
+                                let _ = mem::replace(&mut line_mode, LineMode::Day(Some(new_day)));
+                            }
+
+                        // Found a task
+                        } else if line_str.starts_with("- [") {
+                            if let Some(mut task) = get_task_from_line(line_str) {
+                                task.date = Some(day.date);
+                                month.tasks.push(task);
+                            }
+
+                        // Found an event
+                        } else if line_str.starts_with("- ") {
+                            // day.add_event(String::from("new event"));
                         }
-                        _ => {}
-                    },
+                    }
                 },
             }
 
@@ -178,60 +198,6 @@ mod get_path_tests {
     fn gets_a_none_if_no_path() {
         assert!(matches!(
             get_path_from_line(format!("### [[").as_str()),
-            None
-        ));
-    }
-}
-
-fn get_date_from_path(path: &PathBuf) -> Option<(i32, u32, u32)> {
-    lazy_static! {
-        static ref RE: Regex =
-            RegexBuilder::new(r"^Daily Notes/(?P<year>\d{4})-(?P<month>\d{2})-(?P<date>\d{2})$")
-                .build()
-                .expect("Error creating path regex");
-    }
-
-    RE.captures(path.to_str().unwrap()).map(|captures| {
-        let year = captures
-            .name("year")
-            .unwrap()
-            .as_str()
-            .parse::<i32>()
-            .unwrap();
-        let month = captures
-            .name("month")
-            .unwrap()
-            .as_str()
-            .parse::<u32>()
-            .unwrap();
-        let date = captures
-            .name("date")
-            .unwrap()
-            .as_str()
-            .parse::<u32>()
-            .unwrap();
-
-        (year, month, date)
-    })
-}
-
-#[cfg(test)]
-mod get_date_tests {
-    use std::path::PathBuf;
-    use super::get_date_from_path;
-
-    #[test]
-    fn gets_a_task_from_a_line() {
-        assert_eq!(
-            get_date_from_path(&PathBuf::from("Daily Notes/2022-09-29")).unwrap(),
-            (2022, 09, 29)
-        );
-    }
-
-    #[test]
-    fn gets_a_none_if_no_path() {
-        assert!(matches!(
-            get_date_from_path(&PathBuf::from("Daily Notes/20")),
             None
         ));
     }
