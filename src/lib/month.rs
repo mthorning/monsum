@@ -1,4 +1,5 @@
 use crate::day::Day;
+
 use anyhow::Result;
 use chrono::NaiveDate;
 use lazy_static::lazy_static;
@@ -52,20 +53,26 @@ impl Month {
                     _ => (),
                 },
                 LineMode::Day(day) => match line_str {
-                    line_str if line_str.starts_with("- [") => {
-                        if let Some(mut task) = get_task_from_line(line_str) {
-                            task.date = Some(NaiveDate::from_ymd(2015, 3, 14));
-                            month.tasks.push(task);
-                        }
-                    }
                     line_str if line_str.starts_with("## ") => line_mode = LineMode::Normal,
                     line_str if line_str.starts_with("### [[") => {
                         if let Some(path) = get_path_from_line(line_str) {
+                            line_mode = LineMode::Day(Some(path));
                         }
                     }
                     _ => match day {
-                        None => todo!(),
-                        Some(date) => todo!(),
+                        Some(path) if line_str.starts_with("- [") => {
+                            if let Some(mut task) = get_task_from_line(line_str) {
+                                if let Some(ymd) = get_date_from_path(path) {
+                                    let (y, m, d) = ymd;
+                                    task.date = Some(NaiveDate::from_ymd(y, m, d));
+                                    month.tasks.push(task);
+                                }
+                            }
+                        }
+                        Some(path) if line_str.starts_with("- ") => {
+                            todo!();
+                        }
+                        _ => {}
                     },
                 },
             }
@@ -87,7 +94,7 @@ impl Month {
 
 fn get_task_from_line(line_str: &str) -> Option<Task> {
     lazy_static! {
-        static ref RE: Regex = RegexBuilder::new(r"^- \[(?P<checked>(x|\s))\](?P<value>.*)")
+        static ref RE: Regex = RegexBuilder::new(r"^- \[(?P<checked>(?:x|\s))\](?P<value>.*)")
             .case_insensitive(true)
             .build()
             .expect("Error creating task regex");
@@ -141,21 +148,91 @@ mod get_task_tests {
 }
 
 fn get_path_from_line(line_str: &str) -> Option<PathBuf> {
-    todo!();
+    lazy_static! {
+        static ref RE: Regex = RegexBuilder::new(r"^### \[\[(Daily Notes/\d{4}-\d{2}-\d{2})")
+            .build()
+            .expect("Error creating path regex");
+    }
+
+    match RE.captures(line_str) {
+        None => None,
+        Some(captures) => captures.get(1).map(|path| PathBuf::from(path.as_str())),
+    }
 }
 
 #[cfg(test)]
 mod get_path_tests {
     use super::get_path_from_line;
+    use std::path::PathBuf;
 
     #[test]
     fn gets_a_task_from_a_line() {
         let expected = "Daily Notes/2022-09-29";
-        todo!();
+        assert_eq!(
+            get_path_from_line(&format!("### [[{expected}|29th (Thur)]]")).unwrap(),
+            PathBuf::from(expected)
+        );
     }
 
     #[test]
     fn gets_a_none_if_no_path() {
-        assert!(matches!(get_path_from_line(format!("### [[").as_str()), None));
+        assert!(matches!(
+            get_path_from_line(format!("### [[").as_str()),
+            None
+        ));
+    }
+}
+
+fn get_date_from_path(path: &PathBuf) -> Option<(i32, u32, u32)> {
+    lazy_static! {
+        static ref RE: Regex =
+            RegexBuilder::new(r"^Daily Notes/(?P<year>\d{4})-(?P<month>\d{2})-(?P<date>\d{2})$")
+                .build()
+                .expect("Error creating path regex");
+    }
+
+    RE.captures(path.to_str().unwrap()).map(|captures| {
+        let year = captures
+            .name("year")
+            .unwrap()
+            .as_str()
+            .parse::<i32>()
+            .unwrap();
+        let month = captures
+            .name("month")
+            .unwrap()
+            .as_str()
+            .parse::<u32>()
+            .unwrap();
+        let date = captures
+            .name("date")
+            .unwrap()
+            .as_str()
+            .parse::<u32>()
+            .unwrap();
+
+        (year, month, date)
+    })
+}
+
+#[cfg(test)]
+mod get_date_tests {
+    use std::path::PathBuf;
+    use super::get_date_from_path;
+
+    #[test]
+    fn gets_a_task_from_a_line() {
+        assert_eq!(
+            get_date_from_path(&PathBuf::from("Daily Notes/2022-09-29")).unwrap(),
+            (2022, 09, 29)
+        );
+    }
+
+    #[test]
+    fn gets_a_none_if_no_path() {
+        assert!(matches!(
+            get_date_from_path(&PathBuf::from("Daily Notes/20")),
+            None
+        ));
     }
 }
