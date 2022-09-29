@@ -16,6 +16,7 @@ fn main() -> Result<()> {
 
     let month = Month::new(&path).context("Error creating Month")?;
     month.print_tasks();
+    month.print_days();
 
     Ok(())
 }
